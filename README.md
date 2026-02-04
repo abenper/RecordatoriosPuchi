@@ -59,13 +59,13 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 
 ### ✨ Funcionalidades Clave
 
-#### 1. 🤖 El Asistente Virtual: Un "Ancla a la Realidad"
+#### 1. 🤖 El Asistente Virtual
 * **Recordatorio de Propósito:** El asistente "despierta" y le recuerda verbalmente: *"Hola, soy tu teléfono, estoy aquí para que llames a tus hijos"*. Sin este estímulo, ella olvida la función del objeto.
-* **Compañía:** Un avatar animado con sincronización labial (*lipsync*) reduce la sensación de soledad.
+* **Compañía:** Un avatar animado con sincronización labial, que le genera estímulos fomentando la capacidad de recordarlo.
 
 #### 2. 🛡️ Seguridad Telefónica (Role Manager)
 * **Lista Blanca Estricta:** La app toma el control de la telefonía. Solo entran llamadas de números guardados.
-* **Bloqueo Silencioso:** Cualquier número desconocido es rechazado automáticamente en segundo plano. El teléfono ni siquiera suena, evitando ansiedad y posibles estafas.
+* **Bloqueo Silencioso:** Cualquier número desconocido es rechazado automáticamente en segundo plano. El teléfono ni siquiera suena evitando posibles estafas.
 
 #### 3. 👁️ Interfaz Hiper-Accesible (Modo Kiosco)
 * **Botones Gigantes y Fotos Reales:** Eliminamos la abstracción de leer nombres. Puchi ve la cara de su hijo y pulsa.
