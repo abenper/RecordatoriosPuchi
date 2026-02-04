@@ -1,7 +1,7 @@
 <table>
   <tr>
     <td>
-      <img src="app/src/main/ic_launcher-playstore.png" width="120" alt="Logo Recordatorios de Puchi" style="border-radius: 20%;">
+      <img src="assets/Logo.png" width="120" alt="Logo Recordatorios de Puchi" style="border-radius: 20%;">
     </td>
     <td>
       <h1>Recordatorios de Puchi</h1>
@@ -63,6 +63,11 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 * **Recordatorio de Propósito:** El asistente "despierta" y le recuerda verbalmente: *"Hola, soy tu teléfono, estoy aquí para que llames a tus hijos"*. Sin este estímulo, ella olvida la función del objeto.
 * **Compañía:** Un avatar animado con sincronización labial, que le genera estímulos fomentando la capacidad de recordarlo.
 
+<div align="center">
+  <h3>🎥 <a href="assets/AsistenteSalvapantallas.mp4">VER VIDEO DEL ASISTENTE EN FUNCIONAMIENTO</a> 🎥</h3>
+  <p><i>(Haz clic en el enlace para reproducir el video MP4)</i></p>
+</div>
+
 #### 2. 🛡️ Seguridad Telefónica (Role Manager)
 * **Lista Blanca Estricta:** La app toma el control de la telefonía. Solo entran llamadas de números guardados.
 * **Bloqueo Silencioso:** Cualquier número desconocido es rechazado automáticamente en segundo plano. El teléfono ni siquiera suena evitando posibles estafas.
@@ -70,6 +75,20 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 #### 3. 👁️ Interfaz Hiper-Accesible (Modo Kiosco)
 * **Botones Gigantes y Fotos Reales:** Eliminamos la abstracción de leer nombres. Puchi ve la cara de su hijo y pulsa.
 * **Navegación Lineal:** Sin menús anidados. Todo está a un toque de distancia.
+
+| Menú Principal | Navegación Lineal |
+|:---:|:---:|
+| <img src="assets/MenuPrincipal.png" width="280"> | <img src="assets/MenuSecundario.png" width="280"> |
+
+#### ⚙️ Panel de Administración (Para la Familia)
+
+| Seguridad | Gestión de Contactos |
+|:---:|:---:|
+| <img src="assets/AccesoAdmin.png" width="280"> | <img src="assets/MenuAdminContacto.png" width="280"> |
+
+| Gestión de Avisos | Crear Recordatorio | Ajustes de Hardware |
+|:---:|:---:|:---:|
+| <img src="assets/MenuAdminRecordatorio.png" width="250"> | <img src="assets/MenuAdminCrearRecordatorio.png" width="250"> | <img src="assets/MenuAdminAjustes.png" width="250"> |
 
 ---
 
@@ -131,6 +150,11 @@ A mobile device is not designed to be constantly charging. To prevent battery sw
 * **Purpose Reminder:** The assistant verbally reminds her: *"Hello, I am your phone, I am here for you to call your children."*
 * **Companionship:** An animated avatar with lipsync reduces the feeling of interacting with a cold machine.
 
+<div align="center">
+  <h3>🎥 <a href="assets/AsistenteSalvapantallas.mp4">WATCH ASSISTANT DEMO VIDEO</a> 🎥</h3>
+  <p><i>(Click link to play MP4 video)</i></p>
+</div>
+
 #### 2. 🛡️ Phone Security (Role Manager)
 * **Strict Whitelist:** The app controls telephony. Only calls from saved numbers are allowed.
 * **Silent Blocking:** Unknown numbers are automatically rejected in the background to prevent scams and anxiety.
@@ -138,6 +162,20 @@ A mobile device is not designed to be constantly charging. To prevent battery sw
 #### 3. 👁️ Hyper-Accessible Interface (Kiosk Mode)
 * **Giant Buttons & Real Photos:** No reading required. Puchi sees a face and taps.
 * **Linear Navigation:** No nested menus.
+
+| Main Menu | Linear Navigation |
+|:---:|:---:|
+| <img src="assets/MenuPrincipal.png" width="280"> | <img src="assets/MenuSecundario.png" width="280"> |
+
+#### ⚙️ Admin Panel (Family Control)
+
+| Security | Contact Management |
+|:---:|:---:|
+| <img src="assets/AccesoAdmin.png" width="280"> | <img src="assets/MenuAdminContacto.png" width="280"> |
+
+| Reminders | Create Reminder | Hardware Settings |
+|:---:|:---:|:---:|
+| <img src="assets/MenuAdminRecordatorio.png" width="250"> | <img src="assets/MenuAdminCrearRecordatorio.png" width="250"> | <img src="assets/MenuAdminAjustes.png" width="250"> |
 
 ---
 
