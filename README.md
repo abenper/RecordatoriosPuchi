@@ -16,18 +16,24 @@
   </tr>
 </table>
 
----
-
 ## 🇪🇸 Español
 
-### 🧠 La Filosofía del Proyecto: Más que una App
-**Recordatorios de Puchi** no es un simple "Launcher" para mayores. Es un proyecto de ingeniería de software aplicado a una necesidad neurodegenerativa específica.
+### 📖 Contexto del Proyecto: La Realidad de Puchi
+El centro de este proyecto es **Puchi**, mi abuela de **85 años**.
+Puchi lleva **muchos años diagnosticada de Alzheimer**. No es una condición nueva, lo que nos ha permitido estudiar a fondo su comportamiento. Su vida se basa estrictamente en la **rutina**; su cerebro funciona como un reloj de costumbres.
 
-Nace para devolver la autonomía a **Puchi**, mi abuela de **85 años**, diagnosticada con **Alzheimer** en fase inicial. Mi experiencia conviviendo con la enfermedad me ha enseñado que el problema no es solo que "no recuerde números"; el problema es la **agnosia funcional**: Puchi olvida para qué sirven los objetos.
+Sin embargo, el problema surge cuando ocurre algo fuera de esa rutina (una cita médica, una visita, un cambio de medicación). **Si algo se sale de su guion diario, para ella no existe.** Hemos comprobado que la única forma de que Puchi retenga levemente una información nueva es mediante la **repetición constante ("machaque")**: hay que recordarle el evento cada poco tiempo para que se fije mínimamente en su memoria a corto plazo.
 
-Si el teléfono no interactúa con ella, su cerebro deja de percibirlo como una herramienta de comunicación y pasa a categorizarlo como un "marco de fotos digital" donde ve pasar a sus nietos.
+### 🧩 El Problema: Presencia vs. Autonomía
+La familia no puede estar físicamente a su lado cada 2 o 3 horas para repetirle: *"Abuela, hoy viene el médico"* o *"Abuela, recuerda llamar a tu hijo"*. Aquí es donde entra la aplicación como una **prótesis de memoria**.
 
-**Esta aplicación transforma el Smartphone pasivo en un Compañero Activo.**
+La app se ha diseñado para cubrir ese hueco cuando nosotros no estamos, basándose en dos pilares técnicos:
+
+1.  **Accesibilidad Física (Acelerómetro):** Puchi no debe lidiar con botones de bloqueo. Gracias al sensor de movimiento, **simplemente al levantar el teléfono, este se despierta y está listo**.
+2.  **El Dilema del "Siempre Encendido" (Salvapantallas):**
+    * *La idea ideal:* Para una persona con Alzheimer, lo ideal sería que el teléfono estuviera **siempre encendido con la misma imagen fija** (las fotos de sus hijos), como un cuadro, para que siempre supiera qué hacer.
+    * *El problema técnico:* Mantener una imagen estática al 100% de brillo **quemaría la pantalla OLED (Burn-in)** del dispositivo en cuestión de días.
+    * *La solución (El Asistente):* Hemos desarrollado un sistema híbrido. Un **Asistente Virtual** que actúa como salvapantallas. Se mueve, aparece y desaparece (evitando quemar la pantalla), pero cumple la función cognitiva: **le habla y le recuerda constantemente qué es ese aparato y qué puede hacer con él** ("Soy tu teléfono, puedes llamar a...").
 
 ---
 
@@ -37,7 +43,6 @@ Si el teléfono no interactúa con ella, su cerebro deja de percibirlo como una 
 Esta es la funcionalidad más crítica del sistema. No es un adorno; es una herramienta de **refuerzo cognitivo constante**.
 * **Recordatorio de Propósito:** Cada cierto tiempo (configurable), el asistente "despierta" y le recuerda verbalmente a Puchi: *"Hola, soy tu teléfono, estoy aquí para que llames a tus hijos"*. Sin este estímulo, ella olvida que el dispositivo sirve para llamar.
 * **Compañía y Empatía:** Un avatar animado con sincronización labial (*lipsync*) y gestos de saludo reduce la sensación de interactuar con una máquina fría.
-* **Interacción Natural:** Elimina la barrera de entrada tecnológica mediante instrucciones por voz claras y sencillas.
 
 #### 2. 🛡️ Seguridad Telefónica Activa (Anti-Spam)
 Las personas mayores son el objetivo principal de estafas telefónicas.
@@ -55,11 +60,6 @@ Diseñada para suplir carencias motoras y visuales:
 * **Recordatorios de Voz:** Mensajes grabados por familiares ("Mamá, tómate la pastilla azul"). Es mucho más efectivo escuchar la voz de un nieto que un pitido de alarma genérico.
 * **Ingeniería Robusta (Doze Mode):** Implementación avanzada de `AlarmManager` para garantizar que las alarmas médicas suenen incluso cuando el sistema operativo intenta hibernar la app para ahorrar batería.
 
-#### 5. 📺 Protección de Hardware (OLED)
-Al ser una aplicación *Always-On* (siempre encendida para evitar el desbloqueo), implementamos un **Salvapantallas Inteligente**:
-* **Efecto Yoyó:** Las burbujas de contactos flotan suavemente para evitar el quemado de píxeles (burn-in).
-* **Sensores:** Uso del acelerómetro para detectar cuándo Puchi coge el teléfono y despertar la interfaz inmediatamente.
-
 ---
 
 ### 📸 Galería de la Interfaz
@@ -68,7 +68,7 @@ Al ser una aplicación *Always-On* (siempre encendida para evitar el desbloqueo)
 |:---:|:---:|:---:|:---:|
 | <img src="ruta/a/captura_menu.png" width="200"> | <img src="ruta/a/captura_llamada.png" width="200"> | <img src="ruta/a/captura_admin.png" width="200"> | <img src="ruta/a/captura_asistente.png" width="200"> |
 
-*(Sustituir rutas por imágenes reales)*
+*(Sustituir rutas por las imágenes reales)*
 
 ---
 
@@ -94,14 +94,21 @@ Esta licencia ha sido elegida para proteger la naturaleza social del proyecto:
 
 ## 🇺🇸 English
 
-### 🧠 Project Philosophy: More Than an App
-**Puchi's Reminders** is not just a "Senior Launcher." It is a software engineering project applied to a specific neurodegenerative need.
+### 📖 Project Context: Puchi's Reality
+At the core of this project is **Puchi**, my **85-year-old** grandmother.
+Puchi was diagnosed with **Alzheimer's disease many years ago**. This is not a new condition, which has allowed us to deeply study her behavior. Her life is strictly based on **routine**; her brain operates on habit.
 
-It was created to restore autonomy to **Puchi**, my **85-year-old** grandmother, diagnosed with early-stage **Alzheimer's**. My experience living with this disease has taught me that the issue isn't just "forgetting numbers"; the issue is **functional agnosia**: Puchi forgets what objects are for.
+The problem arises when something disrupts that routine (a doctor's appointment, a visit, a medication change). **If an event falls outside her daily script, it simply does not exist for her.** We have learned that the only way for Puchi to vaguely retain new information is through **constant repetition ("hammering")**: the event must be mentioned repeatedly every short interval for it to stick in her short-term memory.
 
-If the phone doesn't interact with her, her brain stops perceiving it as a communication tool and categorizes it as a "digital photo frame" where she watches her grandchildren pass by.
+### 🧩 The Problem: Presence vs. Autonomy
+The family cannot be physically present every 2 or 3 hours to repeat: *"Grandma, the doctor is coming today"* or *"Grandma, remember to call your son."* This app serves as a **memory prosthesis** to fill that gap.
 
-**This app transforms the passive Smartphone into an Active Companion.**
+The design relies on two key pillars based on her needs:
+1.  **Physical Accessibility (Accelerometer):** Puchi shouldn't struggle with lock buttons. Thanks to the motion sensor, **simply picking up the phone wakes it up**, ready to use.
+2.  **The "Always-On" Dilemma (Screensaver):**
+    * *The Ideal Scenario:* For someone with Alzheimer's, the phone should ideally be **always on with a static image** (her children's photos), like a poster, so she always knows what to do.
+    * *The Technical Constraint:* Keeping a static image at high brightness would cause **OLED Screen Burn-in** within days, destroying the hardware.
+    * *The Solution (The Assistant):* We developed a hybrid system. A **Virtual Assistant** acts as a screensaver. It moves, fades in and out (preventing screen damage), but fulfills the cognitive function: **it speaks to her and constantly reminds her what this device is and what she can do with it** ("I am your phone, you can call...").
 
 ### ✨ Key Innovation & Features
 
