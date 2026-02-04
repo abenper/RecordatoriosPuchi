@@ -37,16 +37,23 @@ La app se ha diseñado para cubrir ese hueco, basándose en dos pilares:
 
 ---
 
-### 🔌 Adaptación de Hardware y Batería
-Un software accesible no sirve de nada si el usuario no puede mantener el dispositivo encendido. Nos encontramos con dos barreras físicas críticas:
+### ⚡ Ingeniería de Hardware y Gestión Energética
+Para este proyecto hemos reutilizado un **OnePlus 8T**, un dispositivo potente pero que requería una adaptación profunda para funcionar como "estación kiosco" conectada 24/7 sin degradar su vida útil.
 
-1.  **La Carga de Batería:**
-    * **Problema:** Puchi ha perdido la motricidad fina necesaria para conectar un cable USB-C convencional. Intentarlo le genera frustración y acaba rompiendo el conector. Además, el dispositivo utilizado **no dispone de carga inalámbrica nativa**.
-    * **Solución:** Hemos implementado una **Base de Carga Magnética USB-C**. Esto convierte la acción de cargar en un gesto simple de "dejar caer" el teléfono sobre la base, sin necesidad de apuntar ni hacer fuerza.
+Un dispositivo móvil no está diseñado para estar siempre cargando. Para evitar el hinchazón de la batería y el sobrecalentamiento, implementamos una estrategia de **"Carga Fría y Estacionaria"**:
 
-2.  **Gestión de Energía (Doze Mode):**
-    * **Problema:** Al ser un dispositivo antiguo reutilizado, la batería se degrada rápido, y Android intenta "matar" la app para ahorrar energía, silenciando las alarmas médicas.
-    * **Solución:** Uso de `AlarmManager` con permisos de alta prioridad (`SCHEDULE_EXACT_ALARM`) para garantizar que el procesador despierte para los avisos médicos, ignorando el ahorro de batería.
+1.  **Smart Charging Logic (Root/Kernel):**
+    * Hemos limitado la carga por software para que **nunca supere el 60%** y se reactive solo al bajar del **50-55%**.
+    * Esto mantiene la batería en su rango de voltaje óptimo (histéresis), evitando el estrés químico de estar al 100% constantemente.
+    * Se fuerza una **carga lenta y fría**, limitando el amperaje de entrada para mantener la temperatura del chasis baja, segura para las manos de Puchi.
+
+2.  **Optimización del Display:**
+    * A pesar de que el OnePlus 8T soporta 120Hz, hemos **reducido la tasa de refresco a 60Hz** a nivel de sistema.
+    * Esto reduce drásticamente el consumo de GPU y la temperatura general del dispositivo, prolongando la vida útil de los componentes internos.
+
+3.  **Adaptación Física (Base Magnética):**
+    * Puchi ha perdido la motricidad fina para conectar cables USB-C.
+    * Solución: **Base de Carga con conector Magnético**. Convierte la carga en un gesto simple de "dejar caer" el teléfono, eliminando la fricción y la frustración.
 
 ---
 
@@ -67,12 +74,13 @@ Un software accesible no sirve de nada si el usuario no puede mantener el dispos
 ---
 
 ### 🔧 Stack Tecnológico y Herramientas
-* **Dispositivo:** Smartphone Android (Reutilizado).
+* **Dispositivo:** OnePlus 8T (Reutilizado & Optimizado).
 * **Entorno de Desarrollo:** Android Studio Ladybug.
 * **Lenguaje:** Kotlin.
 * **UI:** Jetpack Compose.
 * **Base de Datos:** Room (SQLite).
-* **Hardware Adicional:** Adaptador magnético USB-C + Base de carga impresa/adaptada.
+* **Gestión de Energía:** Limitador de carga (60%), Underclocking de pantalla (60Hz), AlarmManager Exact.
+* **Hardware Adicional:** Adaptador magnético USB-C + Base de carga.
 
 ---
 
@@ -97,16 +105,23 @@ The family cannot be physically present every 2 hours to repeat reminders. This 
 
 ---
 
-### 🔌 Hardware Adaptation & Battery
-Accessible software is useless if the user cannot keep the device powered. We faced two critical physical barriers:
+### ⚡ Hardware Engineering & Power Management
+We repurposed a **OnePlus 8T** for this project, a powerful device that required deep adaptation to function as a 24/7 connected "kiosk station" without degrading its lifespan.
 
-1.  **Battery Charging:**
-    * **Problem:** Puchi lacks the fine motor skills to plug in a standard USB-C cable, causing frustration. Furthermore, the reused device **lacks native wireless charging**.
-    * **Solution:** We implemented a **Magnetic USB-C Charging Dock**. This turns charging into a simple "drop and charge" action, removing the need to plug in cables.
+A mobile device is not designed to be constantly charging. To prevent battery swelling and overheating, we implemented a **"Cold & Stationary Charging"** strategy:
 
-2.  **Power Management (Doze Mode):**
-    * **Problem:** Android aggressively kills background apps to save battery, silencing medical alarms.
-    * **Solution:** Implementation of `AlarmManager` with high-priority permissions to ensure the processor wakes up for medical alerts, bypassing battery optimization.
+1.  **Smart Charging Logic (Root/Kernel):**
+    * We limited charging via software to **cap at 60%** and only resume when dropping below **50-55%**.
+    * This keeps the battery in its optimal voltage range (hysteresis), avoiding the chemical stress of sitting at 100%.
+    * We forced a **slow and cold charge**, throttling input amperage to keep the chassis temperature low and safe for Puchi's hands.
+
+2.  **Display Optimization:**
+    * Even though the OnePlus 8T supports 120Hz, we **underclocked the refresh rate to 60Hz** at the system level.
+    * This drastically reduces GPU consumption and overall device temperature, extending component longevity.
+
+3.  **Physical Adaptation (Magnetic Dock):**
+    * Puchi lacks the fine motor skills to plug in USB-C cables.
+    * Solution: **Magnetic Connector Dock**. This turns charging into a simple "drop and charge" action, removing friction and frustration.
 
 ---
 
@@ -127,11 +142,12 @@ Accessible software is useless if the user cannot keep the device powered. We fa
 ---
 
 ### 🔧 Tech Stack & Tools
-* **Device:** Android Smartphone (Reused).
+* **Device:** OnePlus 8T (Repurposed & Optimized).
 * **IDE:** Android Studio Ladybug.
 * **Language:** Kotlin.
 * **UI:** Jetpack Compose.
 * **Database:** Room (SQLite).
+* **Power Management:** Charge Limiter (60%), Screen Underclocking (60Hz), Exact AlarmManager.
 * **Hardware Add-on:** Magnetic USB-C Adapter + Dock.
 
 ---
