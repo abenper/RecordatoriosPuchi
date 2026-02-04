@@ -64,8 +64,8 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 * **Compañía:** Un avatar animado con sincronización labial, que le genera estímulos fomentando la capacidad de recordarlo.
 
 <div align="center">
-  <h3>🎥 <a href="assets/AsistenteSalvapantallas.mp4">VER VIDEO DEL ASISTENTE EN FUNCIONAMIENTO</a> 🎥</h3>
-  <p><i>(Haz clic en el enlace para reproducir el video MP4)</i></p>
+  <h3>🎥 <a href="https://drive.google.com/file/d/1ItaMcMeNuOXK8IxeAaZzLUPc8Sx59dG4/view?usp=sharing">VIDEO DEMOSTRARIVO DEL ASISTENTE</a> 🎥</h3>
+  <p><i>(Click en el enlace para ver el video)</i></p>
 </div>
 
 #### 2. 🛡️ Seguridad Telefónica (Role Manager)
@@ -151,7 +151,7 @@ A mobile device is not designed to be constantly charging. To prevent battery sw
 * **Companionship:** An animated avatar with lipsync reduces the feeling of interacting with a cold machine.
 
 <div align="center">
-  <h3>🎥 <a href="assets/AsistenteSalvapantallas.mp4">WATCH ASSISTANT DEMO VIDEO</a> 🎥</h3>
+  <h3>🎥 <a href="https://drive.google.com/file/d/1ItaMcMeNuOXK8IxeAaZzLUPc8Sx59dG4/view?usp=sharing">WATCH ASSISTANT DEMO VIDEO</a> 🎥</h3>
   <p><i>(Click link to play MP4 video)</i></p>
 </div>
 
