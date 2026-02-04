@@ -10,7 +10,7 @@
           <img src="https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg" alt="License: CC BY-NC 4.0">
         </a>
         <br>
-        <b>Una prótesis cognitiva digital para combatir el aislamiento en la tercera edad.</b>
+        <b>Una solución digital para la tercera edad.</b>
       </p>
     </td>
   </tr>
