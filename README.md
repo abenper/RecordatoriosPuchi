@@ -5,7 +5,7 @@
 > **Una solución de accesibilidad digital para combatir la brecha tecnológica en la tercera edad.**
 > *A digital accessibility solution bridging the tech gap for the elderly.*
 
-![Logo App](main/ic_launcher-playstore.png)
+![Logo App](app/src/main/ic_launcher-playstore.png)
 
 ---
 
