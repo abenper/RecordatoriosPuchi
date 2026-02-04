@@ -4,9 +4,9 @@
 
 > **Una solución de accesibilidad digital para combatir la brecha tecnológica en la tercera edad.**
 > *A digital accessibility solution bridging the tech gap for the elderly.*
-
-![Logo App](app/src/main/ic_launcher-playstore.png)
-
+<p align="center">
+  <img src="app/src/main/ic_launcher-playstore.png" width="180" alt="Logo Recordatorios de Puchi">
+</p>
 ---
 
 ## 🇪🇸 Español
