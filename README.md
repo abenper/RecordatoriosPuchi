@@ -53,7 +53,7 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 
 3.  **Adaptación Física (Base Magnética):**
     * Puchi ha perdido la motricidad fina para conectar cables USB-C.
-    * Solución: **Base de Carga con conector Magnético**. Convierte la carga en un gesto simple de "dejar caer" el teléfono, eliminando la fricción y la frustración.
+    * Solución: **Base de Carga con conector Magnético**. Convierte la carga en un gesto simple de "dejar caer" el teléfono, eliminando la fricción y la frustración, ya que el dispositivo usado no dispone de carga inalámbrica.
 
 ---
 
