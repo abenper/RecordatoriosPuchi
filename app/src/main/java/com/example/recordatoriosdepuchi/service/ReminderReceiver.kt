@@ -1,150 +1,222 @@
-package com.example.recordatoriosdepuchi.utils
+package com.example.recordatoriosdepuchi.service
 
-import android.annotation.SuppressLint
-import android.app.AlarmManager
-import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.widget.Toast
-import com.example.recordatoriosdepuchi.data.local.entity.ReminderEntity
-import com.example.recordatoriosdepuchi.service.ReminderReceiver
+import androidx.annotation.RequiresApi
+import com.example.recordatoriosdepuchi.data.local.PuchiDatabase
+import com.example.recordatoriosdepuchi.utils.PreferenceHelper
+import com.example.recordatoriosdepuchi.utils.ReminderScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 
-/**
- * Gestor de alarmas del sistema.
- * Se encarga de programar, cancelar y calcular los tiempos de disparo para los recordatorios de voz.
- * Maneja la compatibilidad con permisos de "Alarmas Exactas" introducidos en Android 12 (API 31).
- */
-class ReminderScheduler(private val context: Context) {
+class ReminderReceiver : BroadcastReceiver() {
 
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private var wakeLock: PowerManager.WakeLock? = null
 
-    @SuppressLint("ScheduleExactAlarm")
-    fun schedule(reminder: ReminderEntity) {
-        // GESTIÓN DE PERMISOS ANDROID 12+ (API 31)
-        // Las alarmas exactas requieren un permiso especial del usuario.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                // Si no tenemos permiso, redirigimos al usuario a Ajustes en lugar de fallar
-                Toast.makeText(context, "Se requiere permiso para alarmas exactas", Toast.LENGTH_LONG).show()
-                try {
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                } catch (e: Exception) { e.printStackTrace() }
-                return
+    companion object {
+        private var currentMediaPlayer: MediaPlayer? = null
+        private var loudnessEnhancer: LoudnessEnhancer? = null
+
+        fun stopCurrentAudio() {
+            try {
+                if (currentMediaPlayer?.isPlaying == true) {
+                    currentMediaPlayer?.stop()
+                }
+                currentMediaPlayer?.release()
+                loudnessEnhancer?.release()
+                currentMediaPlayer = null
+                loudnessEnhancer = null
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    override fun onReceive(context: Context, intent: Intent) {
+        val pendingResult = goAsync()
+
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "Puchi:AudioWakeLock"
+        )
+        wakeLock?.acquire(10 * 60 * 1000L)
+
+        val audioPath = intent.getStringExtra("AUDIO_PATH")
+        val reminderId = intent.getIntExtra("REMINDER_ID", -1)
+
+        val db = PuchiDatabase.getDatabase(context)
+        CoroutineScope(Dispatchers.IO).launch {
+            if (reminderId != -1) {
+                val reminder = db.reminderDao().getReminderById(reminderId)
+                if (reminder != null) {
+                    val scheduler = ReminderScheduler(context)
+                    scheduler.schedule(reminder)
+                } else {
+                    Handler(Looper.getMainLooper()).post { finishWork(pendingResult) }
+                    return@launch
+                }
+            }
+
+            Handler(Looper.getMainLooper()).post {
+                processAlarm(context, intent, audioPath, pendingResult)
             }
         }
+    }
 
-        // Preparamos el Intent que recibirá el BroadcastReceiver
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("AUDIO_PATH", reminder.audioPath)
-            putExtra("DAYS", reminder.daysOfWeek)
-            putExtra("IS_PERMANENT", reminder.isPermanent)
-            putExtra("CREATION_TIME", reminder.creationTime)
-            putExtra("START_H", reminder.startHour)
-            putExtra("START_M", reminder.startMinute)
-            putExtra("END_H", reminder.endHour)
-            putExtra("END_M", reminder.endMinute)
-            putExtra("REMINDER_ID", reminder.id)
+    @RequiresApi(Build.VERSION_CODES.P)
+    private fun processAlarm(context: Context, intent: Intent, audioPath: String?, pendingResult: PendingResult) {
+        if (audioPath == null) {
+            finishWork(pendingResult)
+            return
         }
 
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            reminder.id, // ID único para no sobrescribir otras alarmas
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val isTest = intent.getBooleanExtra("FORCE_TEST", false)
 
-        // Calculamos cuándo debe sonar
-        val triggerTime = calculateNextTriggerTime(reminder)
+        if (!isTest) {
+            val daysString = intent.getStringExtra("DAYS") ?: ""
+            val isPermanent = intent.getBooleanExtra("IS_PERMANENT", true)
+            val creationTime = intent.getLongExtra("CREATION_TIME", 0L)
 
-        if (triggerTime != null) {
-            // Usamos setExactAndAllowWhileIdle para asegurar que suene incluso en modo Doze (ahorro batería)
-            // Crítico para recordatorios médicos.
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                pendingIntent
-            )
+            val startH = intent.getIntExtra("START_H", 0)
+            val startM = intent.getIntExtra("START_M", 0)
+            var endH = intent.getIntExtra("END_H", 23)
+            val endM = intent.getIntExtra("END_M", 59)
+
+            if (endH == 0) endH = 24
+
+            val now = Calendar.getInstance()
+
+            val today = now.get(Calendar.DAY_OF_WEEK)
+            val selectedDays = daysString.split(",").mapNotNull { it.toIntOrNull() }
+            if (selectedDays.isNotEmpty() && today !in selectedDays) {
+                finishWork(pendingResult)
+                return
+            }
+
+            val currentMinuteOfDay = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            val startMinuteOfDay = startH * 60 + startM
+            val endMinuteOfDay = endH * 60 + endM
+
+            if (currentMinuteOfDay < startMinuteOfDay || currentMinuteOfDay > endMinuteOfDay) {
+                finishWork(pendingResult)
+                return
+            }
+
+            if (!isPermanent) {
+                val oneWeekInMillis = 7 * 24 * 60 * 60 * 1000L
+                if (System.currentTimeMillis() - creationTime > oneWeekInMillis) {
+                    finishWork(pendingResult)
+                    return
+                }
+            }
+        } else {
+            Toast.makeText(context, "🔔 PRUEBA DE SONIDO", Toast.LENGTH_SHORT).show()
+        }
+
+        playReminderAudio(context, audioPath, pendingResult)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    private fun playReminderAudio(context: Context, path: String, pendingResult: PendingResult) {
+        val file = File(path)
+        if (!file.exists()) {
+            finishWork(pendingResult)
+            return
+        }
+
+        try {
+            stopCurrentAudio()
+
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val useSpeaker = PreferenceHelper.isSpeakerEnabled(context)
+
+            // MAXIMIZAR VOLUMEN
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+
+            currentMediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                setDataSource(context, Uri.fromFile(file))
+                setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
+                prepare()
+
+                // RUTEO DE AUDIO INTELIGENTE (CORREGIDO)
+                if (useSpeaker && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    // AQUÍ ESTABA EL ERROR: Es GET_DEVICES_OUTPUTS (Plural)
+                    val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                    val speaker = devices.find { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                    if (speaker != null) {
+                        // AQUÍ TAMBIÉN: Usamos el método setPreferredDevice
+                        setPreferredDevice(speaker)
+                    }
+                } else {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        setPreferredDevice(null) // Dejar que el sistema elija (BT/Auriculares)
+                    }
+                }
+            }
+
+            // AMPLIFICADOR DE SONIDO (+20dB)
+            try {
+                val sessionId = currentMediaPlayer!!.audioSessionId
+                loudnessEnhancer = LoudnessEnhancer(sessionId)
+                loudnessEnhancer?.setTargetGain(2000)
+                loudnessEnhancer?.enabled = true
+            } catch (e: Exception) { e.printStackTrace() }
+
+            var timesPlayed = 0
+            currentMediaPlayer?.setOnCompletionListener { mp ->
+                timesPlayed++
+                if (timesPlayed < 2) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        try { if (currentMediaPlayer == mp) mp.start() } catch (e: Exception) { cleanupAndFinish(pendingResult) }
+                    }, 2000)
+                } else {
+                    cleanupAndFinish(pendingResult)
+                }
+            }
+
+            currentMediaPlayer?.setOnErrorListener { _, _, _ ->
+                cleanupAndFinish(pendingResult)
+                true
+            }
+
+            currentMediaPlayer?.start()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cleanupAndFinish(pendingResult)
         }
     }
 
-    fun cancel(reminder: ReminderEntity) {
-        val intent = Intent(context, ReminderReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            reminder.id,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
+    private fun cleanupAndFinish(pendingResult: PendingResult) {
+        finishWork(pendingResult)
     }
 
-    fun triggerTest(reminder: ReminderEntity) {
-        // Envío manual de broadcast para probar el audio inmediatamente desde Admin
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("AUDIO_PATH", reminder.audioPath)
-            putExtra("FORCE_TEST", true)
-            putExtra("REMINDER_ID", reminder.id)
+    private fun finishWork(pendingResult: PendingResult) {
+        if (wakeLock?.isHeld == true) {
+            try { wakeLock?.release() } catch (e: Exception) {}
         }
-        context.sendBroadcast(intent)
-    }
-
-    fun getNextTriggerTime(reminder: ReminderEntity): Long? {
-        return calculateNextTriggerTime(reminder)
-    }
-
-    /**
-     * Algoritmo para calcular el próximo disparo de la alarma basándose en:
-     * - Hora de inicio/fin
-     * - Intervalo de repetición
-     * - Hora actual
-     */
-    private fun calculateNextTriggerTime(reminder: ReminderEntity): Long? {
-        val now = Calendar.getInstance()
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, reminder.startHour)
-            set(Calendar.MINUTE, reminder.startMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val intervalMillis = reminder.intervalMinutes * 60 * 1000L
-        if (intervalMillis <= 0) return null
-
-        // Si la hora de inicio ya pasó hoy, calculamos el siguiente intervalo válido
-        if (calendar.before(now)) {
-            val diff = now.timeInMillis - calendar.timeInMillis
-            val intervalsPassed = diff / intervalMillis
-            calendar.timeInMillis += (intervalsPassed + 1) * intervalMillis
-        }
-
-        // Lógica de hora de fin (respetar el sueño del usuario)
-        var endH = reminder.endHour
-        if (endH == 0) endH = 24
-
-        val endCalendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, endH)
-            set(Calendar.MINUTE, reminder.endMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        // Si el siguiente recordatorio cae fuera del horario permitido, lo pasamos a mañana
-        if (calendar.after(endCalendar)) {
-            calendar.timeInMillis = now.timeInMillis
-            calendar.set(Calendar.HOUR_OF_DAY, reminder.startHour)
-            calendar.set(Calendar.MINUTE, reminder.startMinute)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
-
-        return calendar.timeInMillis
+        pendingResult.finish()
     }
 }

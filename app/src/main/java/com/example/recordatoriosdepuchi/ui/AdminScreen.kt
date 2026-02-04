@@ -47,7 +47,7 @@ fun AdminScreen(
                     }) {
                         Icon(Icons.Default.PlayCircle, null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("PROBAR MUÑECO")
+                        Text("PROBAR ASISTENTE")
                     }
                 }
             )

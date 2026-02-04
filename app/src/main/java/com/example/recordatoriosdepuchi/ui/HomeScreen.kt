@@ -1,6 +1,7 @@
 package com.example.recordatoriosdepuchi.ui
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -39,16 +40,12 @@ fun HomeScreen(
         }
     }
 
-    // LÓGICA DE INACTIVIDAD (Con tiempo configurable)
+    // LÓGICA DE INACTIVIDAD
     val canShowScreensaver = contacts.isNotEmpty()
     LaunchedEffect(lastInteractionTime, canShowScreensaver, isScreensaverTest) {
         while (true) {
-            delay(5000) // Comprobamos cada 5 segundos
-
-            // Leemos la configuración cada vez (por si ha cambiado en Ajustes)
-            // Convertimos segundos a milisegundos
+            delay(5000)
             val timeoutMillis = PreferenceHelper.getScreensaverTimeout(context) * 1000L
-
             if (!isScreensaverTest && canShowScreensaver && System.currentTimeMillis() - lastInteractionTime > timeoutMillis) {
                 showScreensaver = true
             }
@@ -66,25 +63,11 @@ fun HomeScreen(
             }
         )
     } else {
-        // --- LÓGICA DE PAGINACIÓN CORREGIDA ---
         var currentPage by remember { mutableIntStateOf(0) }
-
-        // 1. Capacidad visual de la rejilla (2x2 = 4 huecos)
         val gridCapacity = 4
-
-        // 2. Calcular dónde empieza esta página.
-        // Avanzamos de 3 en 3 para asegurar hueco al botón "Más" si hace falta.
         val startIndex = currentPage * 3
-
-        // 3. Calcular cuántos contactos quedan desde este punto
         val remainingContacts = if (startIndex < contacts.size) contacts.size - startIndex else 0
-
-        // 4. ¿Necesitamos botón de "Más" en ESTA página?
-        // Si quedan más de 4 contactos, no caben en los 4 huecos -> Necesitamos botón.
         val showMoreButton = remainingContacts > gridCapacity
-
-        // 5. Cortar la lista para mostrar
-        // Si hay botón, mostramos 3 contactos. Si no, mostramos los que quepan (hasta 4).
         val itemsToShowCount = if (showMoreButton) 3 else minOf(remainingContacts, gridCapacity)
         val endIndex = startIndex + itemsToShowCount
 
@@ -94,13 +77,18 @@ fun HomeScreen(
             emptyList()
         }
 
+        // --- CORRECCIÓN IMPORTANTE AQUÍ ---
         fun makeSecureCall(contact: com.example.recordatoriosdepuchi.data.local.entity.ContactEntity) {
-            val intent = Intent(context, CallActivity::class.java).apply {
-                putExtra("CONTACT_NAME", contact.name)
-                putExtra("CONTACT_NUMBER", contact.phoneNumber)
-                putExtra("CONTACT_PHOTO", contact.photoUri)
+            try {
+                // En lugar de abrir la pantalla directamente, ORDENAMOS la llamada al sistema.
+                // El sistema avisará a nuestro PuchiCallService, y él abrirá la pantalla.
+                val uri = Uri.parse("tel:${contact.phoneNumber}")
+                val intent = Intent(Intent.ACTION_CALL, uri)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            context.startActivity(intent)
         }
 
         Scaffold(
@@ -130,9 +118,7 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (contacts.isEmpty()) {
-                        // Empty state (opcional)
-                    } else {
+                    if (contacts.isNotEmpty()) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             contentPadding = PaddingValues(10.dp),

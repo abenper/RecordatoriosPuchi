@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.recordatoriosdepuchi.R
 import com.example.recordatoriosdepuchi.data.local.entity.ContactEntity
+import com.example.recordatoriosdepuchi.service.PuchiCallService
 import com.example.recordatoriosdepuchi.utils.PreferenceHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -50,21 +51,8 @@ import java.util.Calendar
 import kotlin.coroutines.resume
 import kotlin.math.sqrt
 
-// Enum para controlar la máquina de estados de la animación
-enum class AssistantScene {
-    HIDDEN, // Pantalla de burbujas (Salvapantallas pasivo)
-    FACE,   // Cara del asistente hablando (Interacción activa)
-    HAND    // Animación de saludo (Refuerzo visual)
-}
+enum class AssistantScene { HIDDEN, FACE, HAND }
 
-/**
- * Componente principal del Asistente Virtual "Puchi".
- * * Funcionalidad:
- * 1. Actúa como salvapantallas interactivo para evitar el quemado de pantalla OLED.
- * 2. Proporciona compañía mediante un avatar animado que habla y saluda.
- * 3. Muestra "burbujas" flotantes con los contactos para incitar a la comunicación.
- * 4. Detecta movimiento físico (acelerómetro) para "despertar" la app.
- */
 @Composable
 fun PuchiInteractiveScreensaver(
     contacts: List<ContactEntity>,
@@ -74,9 +62,13 @@ fun PuchiInteractiveScreensaver(
     val context = LocalContext.current
     val density = LocalDensity.current
 
-    // CONFIGURACIÓN PERSONALIZADA
     val puppetIntervalMinutes = remember { PreferenceHelper.getPuppetInterval(context) }
     val isPuppetEnabled = remember { PreferenceHelper.isPuppetEnabled(context) }
+
+    // VOLÚMENES
+    val voiceVolumeSetting = remember { PreferenceHelper.getVoiceVolume(context) }
+    val effectsVolumeSetting = remember { PreferenceHelper.getEffectsVolume(context) }
+    val backgroundMusicVolume = remember { PreferenceHelper.getBackgroundMusicVolume(context) }
 
     var isNightMode by remember { mutableStateOf(false) }
     var currentContact by remember { mutableStateOf<ContactEntity?>(null) }
@@ -84,8 +76,40 @@ fun PuchiInteractiveScreensaver(
     var currentScene by remember { mutableStateOf(AssistantScene.HIDDEN) }
     var isSpeaking by remember { mutableStateOf(false) }
 
-    // --- SENSOR DE MOVIMIENTO (ACELERÓMETRO) ---
-    // Detecta si la abuela coge el teléfono para desactivar el salvapantallas automáticamente.
+    // --- REPRODUCTOR DE MÚSICA DE FONDO (Anti-Sleep Bluetooth) ---
+    DisposableEffect(Unit) {
+        var bgPlayer: MediaPlayer? = null
+        try {
+            if (backgroundMusicVolume > 0f) {
+                bgPlayer = MediaPlayer.create(context, R.raw.music).apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    isLooping = true
+
+                    // --- CORRECCIÓN DE VOLUMEN AQUÍ ---
+                    // Multiplicamos por 0.05f para que el 100% de la barra sea solo el 5% real.
+                    // Esto permite que sea "muy muy suave".
+                    val finalVolume = backgroundMusicVolume * 0.05f
+                    setVolume(finalVolume, finalVolume)
+
+                    start()
+                }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+
+        onDispose {
+            try {
+                bgPlayer?.stop()
+                bgPlayer?.release()
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    // --- SENSOR ACELERÓMETRO ---
     DisposableEffect(context) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -98,7 +122,6 @@ fun PuchiInteractiveScreensaver(
                     lastAcceleration = currentAcceleration
                     currentAcceleration = sqrt((x*x + y*y + z*z).toDouble()).toFloat()
                     val delta = currentAcceleration - lastAcceleration
-                    // Umbral de sensibilidad para evitar falsos positivos
                     if (kotlin.math.abs(delta) > 1.2f) { onWakeUp() }
                 }
             }
@@ -108,10 +131,7 @@ fun PuchiInteractiveScreensaver(
         onDispose { sensorManager.unregisterListener(listener) }
     }
 
-    // --- ANIMACIONES COMPOSE ---
-    // Usamos Transition API para animaciones fluidas y eficientes.
-
-    // 1. Parpadeo de ojos (Naturalidad)
+    // ANIMACIONES
     val blinkAnim = rememberInfiniteTransition(label = "blink")
     val eyeScaleY by blinkAnim.animateFloat(
         initialValue = 1f, targetValue = 0.1f,
@@ -121,25 +141,17 @@ fun PuchiInteractiveScreensaver(
         ), label = "eyeScale"
     )
 
-    // 2. Sincronización labial simulada (Lipsync)
     val mouthAnim = rememberInfiniteTransition(label = "mouth")
     val targetMouth = if (isSpeaking) 0.6f else 0.2f
     val initialMouth = if (isSpeaking) 0.3f else 0.2f
-
     val mouthHeight by mouthAnim.animateFloat(
         initialValue = initialMouth, targetValue = targetMouth,
         animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = 400
-                0.3f at 0
-                0.6f at 200
-                0.3f at 400
-            },
+            animation = keyframes { durationMillis = 400; 0.3f at 0; 0.6f at 200; 0.3f at 400 },
             repeatMode = RepeatMode.Reverse
         ), label = "mouthHeight"
     )
 
-    // 3. Animación de mano saludando (Rotación pendular)
     val handAnim = rememberInfiniteTransition(label = "handWave")
     val handRotation by handAnim.animateFloat(
         initialValue = -15f, targetValue = 15f,
@@ -149,7 +161,6 @@ fun PuchiInteractiveScreensaver(
         ), label = "handRot"
     )
 
-    // 4. Flotación de burbujas (Evita quemado de pantalla OLED moviendo pixels)
     val floatAnim = rememberInfiniteTransition(label = "float")
     val offsetY by floatAnim.animateFloat(
         initialValue = 15f, targetValue = -15f,
@@ -159,170 +170,149 @@ fun PuchiInteractiveScreensaver(
         ), label = "offsetY"
     )
 
-    // --- LÓGICA DE FONDO (BURBUJAS) ---
-    // Ciclo infinito que muestra contactos aleatorios flotando para sugerir llamadas.
+    // --- LÓGICA DE BURBUJAS ---
     LaunchedEffect(contacts, testMode) {
         var contactIndex = 0
         while (isActive) {
             val cal = Calendar.getInstance()
             val minOfDay = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
-            // Modo noche: No molestar entre las 22:30 y las 09:30
             isNightMode = (minOfDay >= 1350) || (minOfDay < 570)
 
-            if (!isNightMode || testMode) {
+            val isCallActive = PuchiCallService.currentCall != null
+
+            if ((!isNightMode || testMode) && !isCallActive) {
                 if (currentScene == AssistantScene.HIDDEN && contacts.isNotEmpty()) {
                     currentContact = contacts[contactIndex]
                     contactIndex = (contactIndex + 1) % contacts.size
                     isBubbleVisible = true
-                    delay(8000) // Mostrar 8 segundos
+                    delay(8000)
                     isBubbleVisible = false
-                    delay(3000) // Esperar 3 segundos
+                    delay(3000)
                 } else {
                     delay(1000)
                 }
             } else {
                 isBubbleVisible = false
                 currentScene = AssistantScene.HIDDEN
-                delay(60000)
+                delay(if (isCallActive) 5000 else 60000)
             }
         }
     }
 
-    // --- GUION DEL ASISTENTE (COREOGRAFÍA) ---
+    // --- LÓGICA DEL ASISTENTE ---
     LaunchedEffect(testMode) {
         var isFirstLoop = true
-
         while(isActive) {
-            val shouldRun = testMode || (!isNightMode && isPuppetEnabled)
+            val isCallActive = PuchiCallService.currentCall != null
+            val shouldRun = (testMode || (!isNightMode && isPuppetEnabled)) && !isCallActive
 
             if (shouldRun) {
                 val intervalMillis = puppetIntervalMinutes * 60 * 1000L
                 val waitTime = if (testMode && isFirstLoop) 1000L else intervalMillis
-
                 delay(waitTime)
 
-                // ACTO 1: Aparición
-                currentScene = AssistantScene.FACE
-                playAudio(context, R.raw.entrada, volume = 0.3f)
+                if (PuchiCallService.currentCall == null) {
+                    currentScene = AssistantScene.FACE
 
-                // ACTO 2: Saludo Verbal
-                isSpeaking = true
-                playAudio(context, R.raw.hola, volume = 1.0f)
-                isSpeaking = false
+                    playAudio(context, R.raw.entrada, effectsVolumeSetting * 0.3f)
 
-                // ACTO 3: Saludo Visual (Mano)
-                delay(100)
-                currentScene = AssistantScene.HAND
-                playAudio(context, R.raw.agitarmano, volume = 0.3f)
+                    isSpeaking = true
+                    playAudio(context, R.raw.hola, voiceVolumeSetting * 1.0f)
 
-                // ACTO 4: Explicación y cierre
-                currentScene = AssistantScene.FACE
-                delay(300)
-                isSpeaking = true
-                playAudio(context, R.raw.telefonointeligente, volume = 1.0f)
-                isSpeaking = false
+                    isSpeaking = false
+                    delay(100)
+                    currentScene = AssistantScene.HAND
 
-                // FINAL
-                delay(2000)
-                currentScene = AssistantScene.HIDDEN
+                    playAudio(context, R.raw.agitarmano, effectsVolumeSetting * 0.3f)
 
-                isFirstLoop = false
+                    currentScene = AssistantScene.FACE
+                    delay(300)
+                    isSpeaking = true
+
+                    playAudio(context, R.raw.telefonointeligente, voiceVolumeSetting * 1.0f)
+
+                    isSpeaking = false
+                    delay(2000)
+                    currentScene = AssistantScene.HIDDEN
+                    isFirstLoop = false
+                }
             } else {
                 delay(60000)
             }
         }
     }
 
-    // --- UI (Layout) ---
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                onWakeUp()
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        // CAPA 1: BURBUJAS FLOTANTES
-        AnimatedVisibility(
-            visible = isBubbleVisible && currentScene == AssistantScene.HIDDEN,
-            enter = fadeIn(tween(2000)),
-            exit = fadeOut(tween(2000))
+    // UI
+    if (PuchiCallService.currentCall == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    onWakeUp()
+                },
+            contentAlignment = Alignment.Center
         ) {
-            currentContact?.let { contact ->
-                Column(
-                    modifier = Modifier
-                        .offset(y = with(density) { offsetY.toDp() })
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "LLAMAR A:",
-                        fontSize = 32.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Box(modifier = Modifier.size(320.dp).clip(CircleShape).background(Color.DarkGray)) {
-                        if (contact.photoUri.isNotEmpty()) {
-                            AsyncImage(model = File(contact.photoUri), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(contact.name.take(1), fontSize = 120.sp, color = Color.White)
+            AnimatedVisibility(
+                visible = isBubbleVisible && currentScene == AssistantScene.HIDDEN,
+                enter = fadeIn(tween(2000)),
+                exit = fadeOut(tween(2000))
+            ) {
+                currentContact?.let { contact ->
+                    Column(
+                        modifier = Modifier.offset(y = with(density) { offsetY.toDp() }).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("LLAMAR A:", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Box(modifier = Modifier.size(320.dp).clip(CircleShape).background(Color.DarkGray)) {
+                            if (contact.photoUri.isNotEmpty()) {
+                                AsyncImage(model = File(contact.photoUri), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                            } else {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(contact.name.take(1), fontSize = 120.sp, color = Color.White)
+                                }
                             }
                         }
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(contact.name, fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(contact.name, fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
                 }
             }
-        }
 
-        // CAPA 2: EL ASISTENTE (Transición de escenas)
-        AnimatedContent(
-            targetState = currentScene,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(500)) + scaleIn()).togetherWith(fadeOut(animationSpec = tween(500)) + scaleOut())
-            },
-            label = "SceneTransition"
-        ) { scene ->
-            when (scene) {
-                AssistantScene.HIDDEN -> Box(Modifier.fillMaxSize())
-                AssistantScene.FACE -> {
-                    // Renderizado de la cara (Círculos y formas geométricas simples)
-                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1565C0)), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                                // Ojos con animación de parpadeo
-                                Box(modifier = Modifier.size(100.dp).scale(1f, eyeScaleY).clip(CircleShape).background(Color.White)) {
-                                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black).align(Alignment.Center))
+            AnimatedContent(
+                targetState = currentScene,
+                transitionSpec = { (fadeIn(tween(500)) + scaleIn()).togetherWith(fadeOut(tween(500)) + scaleOut()) },
+                label = "SceneTransition"
+            ) { scene ->
+                when (scene) {
+                    AssistantScene.HIDDEN -> Box(Modifier.fillMaxSize())
+                    AssistantScene.FACE -> {
+                        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1565C0)), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(40.dp)) {
+                                    Box(modifier = Modifier.size(100.dp).scale(1f, eyeScaleY).clip(CircleShape).background(Color.White)) {
+                                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black).align(Alignment.Center))
+                                    }
+                                    Box(modifier = Modifier.size(100.dp).scale(1f, eyeScaleY).clip(CircleShape).background(Color.White)) {
+                                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black).align(Alignment.Center))
+                                    }
                                 }
-                                Box(modifier = Modifier.size(100.dp).scale(1f, eyeScaleY).clip(CircleShape).background(Color.White)) {
-                                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black).align(Alignment.Center))
+                                Spacer(modifier = Modifier.height(80.dp))
+                                Box(modifier = Modifier.height(120.dp), contentAlignment = Alignment.Center) {
+                                    Box(modifier = Modifier.width(120.dp).height(80.dp * mouthHeight).clip(RoundedCornerShape(40.dp)).background(Color.White))
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(80.dp))
-                            // Boca con animación de altura
-                            Box(modifier = Modifier.height(120.dp), contentAlignment = Alignment.Center) {
-                                Box(modifier = Modifier.width(120.dp).height(80.dp * mouthHeight).clip(RoundedCornerShape(40.dp)).background(Color.White))
                             }
                         }
                     }
-                }
-                AssistantScene.HAND -> {
-                    // Renderizado de la mano saludando
-                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1565C0)), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Filled.PanTool,
-                            contentDescription = "Saludo",
-                            tint = Color.White,
-                            modifier = Modifier.size(300.dp).graphicsLayer {
+                    AssistantScene.HAND -> {
+                        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1565C0)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.PanTool, "Saludo", tint = Color.White, modifier = Modifier.size(300.dp).graphicsLayer {
                                 rotationZ = handRotation
                                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
-                            }
-                        )
+                            })
+                        }
                     }
                 }
             }
@@ -330,27 +320,31 @@ fun PuchiInteractiveScreensaver(
     }
 }
 
-// Función auxiliar para reproducir audio de forma asíncrona
+// HELPER DE AUDIO CON VOLUMEN
 suspend fun playAudio(context: Context, resId: Int, volume: Float = 1.0f) = suspendCancellableCoroutine<Unit> { cont ->
     try {
         val mediaPlayer = MediaPlayer.create(context, resId)
-        if (mediaPlayer == null) {
-            cont.resume(Unit)
-            return@suspendCancellableCoroutine
-        }
+        if (mediaPlayer == null) { cont.resume(Unit); return@suspendCancellableCoroutine }
+
         val attr = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setUsage(AudioAttributes.USAGE_ALARM) // Canal potente
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
         mediaPlayer.setAudioAttributes(attr)
+
         mediaPlayer.setVolume(volume, volume)
+
         mediaPlayer.setOnCompletionListener {
             it.release()
             if (cont.isActive) cont.resume(Unit)
         }
         mediaPlayer.start()
+
         cont.invokeOnCancellation {
-            try { if (mediaPlayer.isPlaying) mediaPlayer.stop(); mediaPlayer.release() } catch (e: Exception) {}
+            try {
+                if (mediaPlayer.isPlaying) mediaPlayer.stop()
+                mediaPlayer.release()
+            } catch (e: Exception) {}
         }
     } catch (e: Exception) {
         e.printStackTrace()
