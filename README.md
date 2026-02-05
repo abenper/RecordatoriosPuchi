@@ -90,6 +90,10 @@ Un dispositivo móvil no está diseñado para estar siempre cargando. Para evita
 |:---:|:---:|:---:|
 | <img src="assets/MenuAdminRecordatorio.png" width="250"> | <img src="assets/MenuAdminCrearRecordatorio.png" width="250"> | <img src="assets/MenuAdminAjustes.png" width="250"> |
 
+| Estadísticas (NUEVO) |
+|:---:|
+| <img src="assets/MenuAdminStats.png" width="250"> |
+
 ---
 
 ### 🔧 Stack Tecnológico y Herramientas
@@ -176,6 +180,10 @@ A mobile device is not designed to be constantly charging. To prevent battery sw
 | Reminders | Create Reminder | Hardware Settings |
 |:---:|:---:|:---:|
 | <img src="assets/MenuAdminRecordatorio.png" width="250"> | <img src="assets/MenuAdminCrearRecordatorio.png" width="250"> | <img src="assets/MenuAdminAjustes.png" width="250"> |
+
+| Stats (NEW) |
+|:---:|
+| <img src="assets/MenuAdminStats.png" width="250"> |
 
 ---
 
