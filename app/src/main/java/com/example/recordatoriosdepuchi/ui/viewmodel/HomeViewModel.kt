@@ -13,6 +13,8 @@ import com.example.recordatoriosdepuchi.utils.ReminderScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Collections
+import com.example.recordatoriosdepuchi.data.local.entity.CallLogEntity
+import com.example.recordatoriosdepuchi.data.local.entity.CallType
 
 class HomeViewModel(
     application: Application,
@@ -123,6 +125,17 @@ class HomeViewModel(
 
     fun testReminder(reminder: ReminderEntity) {
         scheduler.triggerTest(reminder)
+    }
+
+    val callLogs: StateFlow<List<CallLogEntity>> = repository.allLogs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Función para registrar llamadas (llámala cuando se cuelgue o se inicie llamada)
+    fun registerCall(contactName: String, isIncoming: Boolean) {
+        viewModelScope.launch {
+            val type = if (isIncoming) CallType.INCOMING else CallType.OUTGOING
+            repository.logCall(contactName, type)
+        }
     }
 }
 

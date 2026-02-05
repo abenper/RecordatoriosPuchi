@@ -5,7 +5,14 @@ import com.example.recordatoriosdepuchi.data.PuchiRepository
 import com.example.recordatoriosdepuchi.data.local.PuchiDatabase
 
 class PuchiApplication : Application() {
-
     val database by lazy { PuchiDatabase.getDatabase(this) }
-    val repository by lazy { PuchiRepository(database.contactDao(), database.reminderDao()) }
+
+    // Inicialización del repositorio con los 3 DAOs (Contactos, Recordatorios y LOGS)
+    val repository by lazy {
+        PuchiRepository(
+            database.contactDao(),
+            database.reminderDao(),
+            database.callLogDao()
+        )
+    }
 }
